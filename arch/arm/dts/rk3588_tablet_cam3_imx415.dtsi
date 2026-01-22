@@ -1,0 +1,193 @@
+// rk3588_tablet_lcd_mipi_hdmi.dtsi
+//gh8555  hygd
+
+/ {
+
+
+
+	vcc_cam3: vcc-cam3 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_cam3";
+		regulator-boot-on;
+		regulator-always-on;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+		gpio = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&vcc_3v3_s0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc_cam3_pwr>;
+	};
+};
+
+
+&i2c7 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c7m0_xfer>;
+
+	imx415_1a: imx415@1a {
+		compatible = "sony,imx415";
+		reg = <0x1a>;
+		clocks = <&cru CLK_MIPI_CAMARAOUT_M4>;
+		clock-names = "xvclk";
+		pinctrl-names = "default";
+		//pinctrl-0 = <&mipim0_camera1_clk>, <&imx415_power_pwr>, <&imx415_reset_pwr>;
+		pinctrl-0 = <&mipim0_camera4_clk>;//, <&imx415_reset_pwr>;
+
+		power-domains = <&power RK3588_PD_VI>;
+		//power-gpios = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_LOW>;//<&gpio1 RK_PB4 GPIO_ACTIVE_HIGH>;
+		avdd-supply = <&vcc_cam3>;
+		rockchip,camera-module-index = <2>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "CMK-OT2022-PX1";
+		rockchip,camera-module-lens-name = "IR0147-50IRC-8M-F20";
+		port {
+			imx415_out0: endpoint {
+				remote-endpoint = <&mipi_in_ucam0>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+};
+
+
+&csi2_dphy0 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_in_ucam0: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&imx415_out0>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			csidcphy0_out: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&mipi2_csi2_input>;
+			};
+		};
+	};
+};
+
+
+
+
+&mipi2_csi2 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi2_csi2_input: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&csidcphy0_out>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi2_csi2_output: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&cif_mipi_in0>;
+			};
+		};
+	};
+};
+
+&csi2_dphy0_hw {
+	status = "okay";
+};
+
+
+
+&rkcif {
+	status = "okay";
+};
+
+&rkcif_mipi_lvds2 {
+	status = "okay";
+
+	port {
+		cif_mipi_in0: endpoint {
+			remote-endpoint = <&mipi2_csi2_output>;
+		};
+	};
+};
+
+&rkcif_mipi_lvds2_sditf {
+	status = "okay";
+
+	port {
+		mipi_lvds2_sditf: endpoint {
+			remote-endpoint = <&isp0_vir2>;
+		};
+	};
+};
+
+&rkcif_mmu {
+	status = "okay";
+};
+
+&rkisp0{
+	status = "okay";
+};
+
+&isp0_mmu {
+	status = "okay";
+};
+
+&rkisp0_vir2 {
+	status = "okay";
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		isp0_vir2: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&mipi_lvds2_sditf>;
+		};
+	};
+};
+
+
+&pinctrl {
+	vcc_mipi {
+		vcc_cam3_pwr: vcc-cam3-pwr{
+			rockchip,pins = <3 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+
+	};
+
+	imx415 {
+		imx415_reset_pwr: imx415-reset-pwr {
+			//rockchip,pins = <1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <1 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+};
